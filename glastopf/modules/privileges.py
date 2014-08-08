@@ -15,7 +15,7 @@ def recursive_chown(path, run_uid, run_gid):
             os.chown(os.path.join(root, single_file), run_uid, run_gid)
 
 
-def drop(work_dir, new_uid='nobody', new_gid='nogroup'):
+def drop(work_dir, new_uid='root', new_gid='root'):
     starting_uid = os.getuid()
     starting_gid = os.getgid()
 
