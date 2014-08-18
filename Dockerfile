@@ -1,22 +1,12 @@
 FROM ubuntu:trusty
 MAINTAINER Lukas Rist <glaslos@gmail.com>
 
-
-## setup APT
-RUN sed -i '1ideb mirror://mirrors.ubuntu.com/mirrors.txt trusty main restricted universe multiverse' /etc/apt/sources.list
-RUN sed -i '1ideb mirror://mirrors.ubuntu.com/mirrors.txt trusty-updates main restricted universe multiverse' /etc/apt/sources.list
-RUN sed -i '1ideb mirror://mirrors.ubuntu.com/mirrors.txt trusty-backports main restricted universe multiverse' /etc/apt/sources.list
-RUN sed -i '1ideb mirror://mirrors.ubuntu.com/mirrors.txt trusty-security main restricted universe multiverse' /etc/apt/sources.list
-RUN apt-get update
+ENV LC_ALL C
 ENV DEBIAN_FRONTEND noninteractive
-
+RUN apt-get update && apt-get -y dist-upgrade
 
 ## Install dependencies
-RUN apt-get install -y python2.7 python-openssl python-gevent libevent-dev python2.7-dev build-essential make
-RUN apt-get install -y python-chardet python-requests python-sqlalchemy python-lxml
-RUN apt-get install -y python-beautifulsoup mongodb python-pip python-dev python-setuptools
-RUN apt-get install -y g++ git php5 php5-dev liblapack-dev gfortran libmysqlclient-dev
-RUN apt-get install -y libxml2-dev libxslt-dev
+RUN apt-get install -y build-essential g++ gfortran git libevent-dev liblapack-dev libmysqlclient-dev libxml2-dev libxslt-dev make mongodb php5 php5-dev python2.7 python2.7-dev python-beautifulsoup python-chardet python-dev python-gevent python-lxml python-openssl python-pip python-requests python-setuptools python-sqlalchemy
 RUN pip install --upgrade distribute
 
 
