@@ -12,5 +12,5 @@ Sourcecode is on [Ali Ikinci's GitHub][3]
 After that glastopf will listen on Port 80 ready to fool attackers :)
 
   [1]: https://github.com/glastopf/glastopf
-  [2]: https://registry.hub.docker.com/u/honeynet/glastopf/
+  [2]: https://hub.docker.com/r/honeynet/glastopf/
   [3]: https://github.com/aikinci/glastopf
