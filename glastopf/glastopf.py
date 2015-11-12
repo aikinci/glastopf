@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,10 +23,9 @@ import gevent
 import os
 import sys
 import Queue
-import string
-import random
+import uuid
 
-from ConfigParser import ConfigParser
+from ConfigParser import ConfigParser, NoSectionError, NoOptionError
 import logging.handlers
 
 from __init__ import __version__
@@ -37,7 +36,7 @@ from modules.handlers.request_handler import RequestHandler
 from modules import logging_handler, vdocs
 import shutil
 import modules.privileges as privileges
-#import modules.processing.profiler as profiler
+import modules.processing.profiler as profiler
 from modules.handlers.emulators.dork_list import dork_file_processor
 from modules.handlers.emulators.dork_list import database_sqla
 from modules.handlers.emulators.dork_list import database_mongo
@@ -63,26 +62,38 @@ class GlastopfHoneypot(object):
         logger.info('Initializing Glastopf {0} using "{1}" as work directory.'.format(__version__, work_dir))
         self.work_dir = work_dir
         self.data_dir = os.path.join(self.work_dir, 'data')
+        self.loggers = logging_handler.get_aux_loggers(self.data_dir, self.work_dir)
+        self.config_path = os.path.join(self.work_dir, config)
 
         conf_parser = ConfigParser()
-        conf_parser.read(config)
+        conf_parser.read(self.config_path)
         self.options = {
             "uid": conf_parser.get("webserver", "uid").encode('latin1'),
             "gid": conf_parser.get("webserver", "gid").encode('latin1'),
             "proxy_enabled": conf_parser.get("webserver", "proxy_enabled").encode('latin1'),
             "banner": conf_parser.get("misc", "banner").encode('latin1'),
+            "sensorid": conf_parser.get("sensor", "sensorid").encode('latin1'),
         }
+
+        if self.options['sensorid'] == "None":
+            self.options['sensorid'] = str(uuid.uuid4())
+            conf_parser.set('sensor', 'sensorid', self.options['sensorid'])
+            with open((self.config_path), 'wb') as configfile:
+                conf_parser.write(configfile)
 
         (self.maindb, self.dorkdb) = self.setup_main_database(conf_parser)
 
-        self.dork_generator = self.setup_dork_generator(conf_parser, self.work_dir)
+        self.dork_generator = self.setup_dork_generator(conf_parser)
 
         if len(self.dork_generator.get_current_pages()) == 0:
             logger.info("Generating initial dork pages - this can take a while.")
             self.dork_generator.regular_generate_dork(0)
 
-        #profiler disabled until issue #26 is fixed
         self.profiler_available = False
+        try:
+            self.profiler_available = conf_parser.getboolean("profiler", "enabled")
+        except (NoSectionError, NoOptionError):
+            pass
         if self.profiler_available:
             self.profiler = profiler.Profiler(self.maindb)
 
@@ -99,10 +110,7 @@ class GlastopfHoneypot(object):
         """
         privileges.drop(self.work_dir, self.options['uid'], self.options['gid'])
         self.workers_enabled = True
-        self.loggers = logging_handler.get_aux_loggers(self.data_dir)
-
         dork_worker = gevent.spawn(self.dork_generator.regular_generate_dork, 30)
-
         post_processor_worker = gevent.spawn(self.post_processer)
         logger.info('Glastopf started and privileges dropped.')
 
@@ -131,7 +139,7 @@ class GlastopfHoneypot(object):
                 except Exception as ex:
                     logger.exception('Error while logging using {0}: {1}'.format(_logger, ex))
 
-    def setup_dork_generator(self, conf_parser, work_dir):
+    def setup_dork_generator(self, conf_parser):
         file_processor = dork_file_processor.DorkFileProcessor(self.dorkdb)
 
         mnemosyne_service = None
@@ -142,9 +150,11 @@ class GlastopfHoneypot(object):
         return dork_page_generator.DorkPageGenerator(self.dorkdb,
                                                      file_processor,
                                                      data_dir=self.data_dir,
+                                                     conf_parser=conf_parser,
                                                      mnem_service_instance=mnemosyne_service)
 
-    def setup_main_database(self, conf_parser):
+    @staticmethod
+    def setup_main_database(conf_parser):
 
         if conf_parser.getboolean("main-database", "enabled"):
             connection_string = conf_parser.get("main-database", "connection_string")
@@ -163,11 +173,11 @@ class GlastopfHoneypot(object):
                 logger.error("Invalid connection string.")
                 sys.exit(1)
         else:
-            default_db = "sqlite://db/glastopf.db"
-            logger.info("Main datbase has been disabled, dorks will be stored in: {0}".format(default_db))
+            default_db = "sqlite:///db/glastopf.db"
+            logger.info("Main database has been disabled, dorks will be stored in: {0}".format(default_db))
             #db will only be used for dorks
-            sqla_engine = create_engine("sqlite://db/glastopf.db")
-            maindb = log_sql.Database(sqla_engine)
+            sqla_engine = create_engine(default_db)
+            #maindb = log_sql.Database(sqla_engine)
             dorkdb = database_sqla.Database(sqla_engine)
             #disable usage of main logging datbase
             return None, dorkdb
@@ -185,6 +195,14 @@ class GlastopfHoneypot(object):
         check_call(['make', '-B', '-s', 'out={0}'.format(sandbox_out)])
         #restore state of original working dir
         os.chdir(old_cwd)
+
+    @staticmethod
+    def _ignore_copy_files(_, content):
+        to_ignore = []
+        for file_name in content:
+            if file_name in ('.placeholder', '.git'):
+                to_ignore.append(file_name)
+        return to_ignore
 
     @staticmethod
     def prepare_environment(work_dir):
@@ -224,14 +242,7 @@ class GlastopfHoneypot(object):
         GlastopfHoneypot.prepare_sandbox(work_dir)
 
     @staticmethod
-    def _ignore_copy_files(path, content):
-        to_ignore = []
-        for file_name in content:
-            if file_name in ('.placeholder', '.git'):
-                to_ignore.append(file_name)
-        return to_ignore
-
-    def _handle_proxy(self, attack_event, addr):
+    def _handle_proxy(attack_event, addr):
         client_ip = attack_event.http_request.request_headers['X-Forwarded-For']
         client_ip = client_ip.split(',')[-1]
         if client_ip == 'unknown':
@@ -244,6 +255,12 @@ class GlastopfHoneypot(object):
         attack_event = attack.AttackEvent()
         attack_event.raw_request = raw_request
         attack_event.sensor_addr = sensor_addr
+
+        # Add glastopf version
+        attack_event.version = __version__
+
+        # Add sensor name
+        attack_event.sensorid = self.options['sensorid']
 
         attack_event.http_request = HTTPHandler(raw_request, addr, self.options['banner'], sys_version=' ')
 

@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -27,13 +27,14 @@ class SQLiEmulator(base_emulator.BaseEmulator):
     """Emulates a SQL injection vulnerability and a successful attack."""
 
     def __init__(self, data_dir):
+        self.ret = None
         self.sqli_c = sql.SQLiClassifier()
         self.sql_response = sql_responses.SQLResponses()
         super(SQLiEmulator, self).__init__(data_dir)
 
     def handle(self, attack_event):
-        payload = ""
-        value = ""
+        payload = None
+        value = None
         for value_list in attack_event.http_request.request_query.values():
             value = value_list[0]
             self.ret = self.sqli_c.classify(value)

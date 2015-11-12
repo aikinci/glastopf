@@ -1,4 +1,4 @@
-# Copyright (C) 2011  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -29,6 +29,8 @@ class AttackEvent(object):
         self.source_addr = None
         self.matched_pattern = "unknown"
         self.file_name = None
+        self.version = None
+        self.sensorid = None
 
     def event_dict(self):
         event_dict = {
@@ -38,5 +40,7 @@ class AttackEvent(object):
             "request_raw": self.http_request.request_raw,
             "pattern": self.matched_pattern,
             "filename": self.file_name,
+            "version": self.version,
+            "sensorid": self.sensorid,
         }
         return event_dict

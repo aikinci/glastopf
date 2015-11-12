@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -22,12 +22,14 @@ import shutil
 import os
 import tempfile
 import inspect
-import helpers
 
-from glastopf.modules.handlers.request_handler import RequestHandler
 from glastopf.glastopf import GlastopfHoneypot
+from glastopf.modules.handlers.request_handler import RequestHandler
 import glastopf.modules.events.attack as attack
 from glastopf.modules.HTTP.handler import HTTPHandler
+import glastopf.modules.HTTP.method_handler as method_handler
+
+import helpers
 
 
 class TestEmulatorIntegration(unittest.TestCase):
@@ -285,6 +287,26 @@ class TestEmulatorIntegration(unittest.TestCase):
         emulator.handle(event)
         self.assertTrue("PHP Version " in event.http_request.get_response())
         self.assertTrue("Zend Extension" in event.http_request.get_response())
+
+    def test_put_method(self):
+        """Objective: Test handling of a PUT requests
+        Input: curl -XPUT http://localhost/
+        Expected Result: request verb is PUT, matcher pattern is put
+        Notes:"""
+        event = attack.AttackEvent()
+        event.http_request = HTTPHandler('PUT / HTTP/1.0', None)
+        self.assertTrue(event.http_request.request_verb == "PUT")
+        method_handlers = method_handler.HTTPMethods(self.data_dir)
+        event.matched_pattern = getattr(
+            method_handlers,
+            event.http_request.command,
+            method_handlers.GET
+        )(event.http_request)
+        self.assertTrue(event.matched_pattern == 'put')
+        request_handler = RequestHandler(self.data_dir)
+        emulator = request_handler.get_handler(event.matched_pattern)
+        emulator.handle(event)
+        self.assertTrue('Created' in event.http_request.get_response())
 
 
 if __name__ == '__main__':

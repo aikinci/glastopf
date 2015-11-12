@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,4 +23,4 @@ class OPTIONSRequest(base_emulator.BaseEmulator):
         super(OPTIONSRequest, self).__init__(data_dir)
 
     def handle(self, attack_event):
-        attack_event.set_response('', http_code=200, headers=(('Allow', 'OPTIONS, GET, HEAD, POST'),))
+        attack_event.http_request.set_response('', http_code=200, headers=(('Allow', 'OPTIONS, GET, HEAD, POST'),))

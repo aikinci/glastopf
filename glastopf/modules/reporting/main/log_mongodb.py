@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 try:
     from pymongo import MongoClient, uri_parser
 except ImportError:
+    MongoClient, uri_parser = None, None
     logger.warn('Unable to import module pymongo')
+
 
 class Database(object):
     def __init__(self, connection_string):
@@ -42,3 +44,13 @@ class Database(object):
 
     def insert(self, attack_event):
         self.db["events"].insert(attack_event.event_dict())
+
+    # TODO: add support for mongo in the log_profiler
+    def insert_profile(self, ip_profile):
+        pass
+
+    def update_db(self):
+        pass
+
+    def get_profile(self, source_ip):
+        pass

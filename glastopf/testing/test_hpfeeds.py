@@ -1,4 +1,4 @@
-# Copyright (C) 2013 Johnny Vestergaard <jkv@unixcluster.dk>
+# Copyright (C) 2015 Johnny Vestergaard <jkv@unixcluster.dk>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@ from glastopf.modules.reporting.auxiliary.log_hpfeeds import HPFeedsLogger
 from glastopf.modules.HTTP.handler import HTTPHandler
 
 
-class Test_Loggers(unittest.TestCase):
+class TestLoggers(unittest.TestCase):
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
@@ -46,7 +46,7 @@ class Test_Loggers(unittest.TestCase):
         with open(config_file, 'w') as f:
             f.writelines(helpers.gen_config(''))
 
-        logger = HPFeedsLogger(self.tmpdir, config=config_file, reconnect=False)
+        logger = HPFeedsLogger(self.tmpdir, os.getcwd(), config=config_file, reconnect=False)
         event = attack.AttackEvent()
         event.http_request = HTTPHandler('', None)
         event.raw_request = "GET /honeypot_test HTTP/1.1\r\nHost: honeypot\r\n\r\n"
@@ -70,7 +70,7 @@ class Test_Loggers(unittest.TestCase):
         with open(os.path.join(self.files_dir, file_name), 'w') as f:
             f.write('test_test_test_test_test')
 
-        logger = HPFeedsLogger(self.tmpdir, config=config_file, reconnect=False)
+        logger = HPFeedsLogger(self.tmpdir, os.getcwd(), config_file, reconnect=False)
         event = attack.AttackEvent()
         event.http_request = HTTPHandler('', None)
         event.raw_request = "GET /honeypot_test HTTP/1.1\r\nHost: honeypot\r\n\r\n"

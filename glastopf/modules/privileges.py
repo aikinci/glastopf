@@ -50,4 +50,3 @@ def drop(work_dir, new_uid='root', new_gid='root'):
             os.umask(new_umask)
         except Exception as e:
             logger.error("Failed to change umask: {0}".format(e))
-

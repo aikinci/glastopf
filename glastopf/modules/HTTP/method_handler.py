@@ -1,4 +1,4 @@
-# Copyright (C) 2011  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,18 +25,17 @@ class HTTPMethods(object):
         pass
 
     def GET(self, http_request):
-        RequestClassifier = request_classifier.Classifier(self.data_dir)
-        matched_pattern = RequestClassifier.classify_request(http_request)
+        req_classifier = request_classifier.Classifier(self.data_dir)
+        matched_pattern = req_classifier.classify_request(http_request)
         return matched_pattern
 
     def POST(self, http_request):
-        RequestClassifier = request_classifier.Classifier(self.data_dir)
-        matched_pattern = RequestClassifier.classify_request(http_request)
+        req_classifier = request_classifier.Classifier(self.data_dir)
+        matched_pattern = req_classifier.classify_request(http_request)
         #http_request.request_body -> File('files/payloads')
         return matched_pattern
 
     def HEAD(self, http_request):
-        # TODO: Return the proper HEAD respone
         return "head"
 
     def TRACE(self, http_request):
@@ -45,3 +44,6 @@ class HTTPMethods(object):
     def OPTIONS(self, http_request):
         # TODO: Return the proper OPTIONS respone
         return "options"
+    
+    def PUT(self, http_request):
+        return "put"

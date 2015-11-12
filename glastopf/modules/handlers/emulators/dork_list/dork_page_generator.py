@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -24,7 +24,6 @@ import time
 import os
 import logging
 
-from glastopf.modules.handlers.emulators.dork_list import gen_html
 from glastopf.modules.handlers.emulators.surface import create_surface
 
 
@@ -32,6 +31,7 @@ logger = logging.getLogger(__name__)
 package_directory = os.path.dirname(os.path.abspath(__file__))
 
 INURL_MIN_SIZE = 500
+
 
 class DorkPageGenerator(object):
     """
@@ -42,9 +42,11 @@ class DorkPageGenerator(object):
                  database_instance,
                  dorks_file_processor_instance,
                  data_dir,
+                 conf_parser=None,
                  pages_dir=None,
                  mnem_service_instance=None):
         self.database = database_instance
+        self.conf_parser = conf_parser
         if not pages_dir:
             self.pages_path = os.path.join(data_dir, 'dork_pages')
         else:
@@ -59,9 +61,10 @@ class DorkPageGenerator(object):
             logger.info("Bootstrapping dork database.")
             self.bootstrap_dorkdb()
         self.enabled = True
-        self.surface_creator = create_surface.SurfaceCreator(data_dir=data_dir)
+        self.surface_creator = create_surface.SurfaceCreator(data_dir=data_dir, conf_parser=conf_parser)
 
-    def prepare_text(self):
+    @classmethod
+    def prepare_text(cls):
         line_list = []
         text_file = os.path.join(package_directory, 'data/pride.txt')
         with codecs.open(text_file, "r", "utf-8") as text_file:
@@ -76,7 +79,10 @@ class DorkPageGenerator(object):
         line_list = self.prepare_text()
         shuffle(line_list)
 
-        inurl_list = self.database.select_data()
+        if self.conf_parser.getboolean("main-database", "enabled"):
+            inurl_list = self.database.select_data()
+        else:
+            inurl_list = self.database.get_dork_list('inurl')
         shuffle(inurl_list)
         #get data from dorkdb if the live database does not have enough
         if len(inurl_list) < INURL_MIN_SIZE:
@@ -166,4 +172,3 @@ class DorkPageGenerator(object):
         dorks += self.dork_file_processor.process_dorks(ignore)
         self.database.insert_dorks(dorks)
         logger.debug('Finished bootstrapping dork database.')
-

@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Johnny Vestergaard <jkv@unixcluster.dk>
+# Copyright (C) 2015 Johnny Vestergaard <jkv@unixcluster.dk>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -16,12 +16,14 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import logging
+import os
 
 from glastopf.modules.reporting.auxiliary.base_logger import BaseLogger
 
 
 class LogSyslog(BaseLogger):
-    def __init__(self, data_dir, config="glastopf.cfg"):
+    def __init__(self, data_dir, work_dir, config="glastopf.cfg"):
+        config = os.path.join(work_dir, config)
         BaseLogger.__init__(self, config)
         self.options = {
             "enabled": self.config.getboolean("syslog", "enabled"),
@@ -33,7 +35,7 @@ class LogSyslog(BaseLogger):
             try:
                 LogSyslog.logger
             except AttributeError:
-                LogSyslog.logger = logging.getLogger('glaspot_attack')
+                LogSyslog.logger = logging.getLogger('glastopf_attack')
                 LogSyslog.logger.propagate = False
                 if ":" in self.options['socket']:
                     host, port = self.options['socket'].split(":")
@@ -46,12 +48,14 @@ class LogSyslog(BaseLogger):
                 LogSyslog.logger.setLevel(logging.INFO)
 
     def insert(self, attack_event):
-        message = "Glaspot: %(pattern)s attack method from %(source)s against %(host)s:%(port)s. [%(method)s %(url)s]" % {
+        message = "Glastopf: %(pattern)s attack method from %(source)s against %(host)s:%(port)s. [%(method)s %(url)s] v:%(version)s id:%(sensorid)s" % {
             'pattern': attack_event.matched_pattern,
             'source': ':'.join((attack_event.source_addr[0], str(attack_event.source_addr[1]))),
             'host': attack_event.sensor_addr[0],
             'port': attack_event.sensor_addr[1],
             'method': attack_event.http_request.request_verb,
             'url': attack_event.http_request.request_url,
+            'version': attack_event.version,
+            'sensorid': attack_event.sensorid,
         }
         LogSyslog.logger.info(message)

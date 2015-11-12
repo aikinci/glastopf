@@ -5,6 +5,12 @@ uid = nobody
 gid = nogroup
 proxy_enabled = False
 
+[ssl]
+enabled = False
+certfile = 
+keyfile = 
+
+
 #Generic logging for general monitoring
 [logging]
 consolelog_enabled = True
@@ -14,8 +20,9 @@ logfile = log/glastopf.log
 [dork-db]
 enabled = True
 pattern = rfi
-#Extracts dorks from a online dorks service operated by The Honeynet Project
-mnem_service = True
+# Extracts dorks from a online dorks service operated by The Honeynet Project
+# This service is down until further notice!
+mnem_service = False
 
 [hpfeed]
 enabled = True
@@ -77,6 +84,24 @@ include_contact_info = False
 contact_name = ...
 contact_email = ...
 
+[logstash]
+enabled = False
+host = localhost
+port = 5659
+handler = AMQP/TCP/UDP 
+
 [misc]
 # set webserver banner
 banner = Apache/2.0.48
+
+[surface]
+#https://www.google.com/webmasters/
+google_meta =
+#http://www.bing.com/toolbox/webmaster
+bing_meta =
+
+[sensor]
+sensorid = None
+
+[profiler]
+enabled = False

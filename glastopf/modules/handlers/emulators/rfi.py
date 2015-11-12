@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -20,10 +20,10 @@ import hashlib
 import os
 import re
 import logging
+import ssl
 
 import glastopf.sandbox.sandbox as sandbox
 from glastopf.modules.handlers import base_emulator
-
 
 logger = logging.getLogger(__name__)
 
@@ -35,14 +35,16 @@ class RFIEmulator(base_emulator.BaseEmulator):
         if not os.path.exists(self.files_dir):
             os.mkdir(self.files_dir)
 
-    def extract_url(self, url):
+    @classmethod
+    def extract_url(cls, url):
         protocol_pattern = re.compile("=.*(http(s)?|ftp(s)?)", re.IGNORECASE)
         matched_protocol = protocol_pattern.search(url).group(1)
         # FIXME: Check if the extracted url is actually a url
         injected_url = matched_protocol + url.partition(matched_protocol)[2].split("?")[0]
         return injected_url.strip("=")
 
-    def get_filename(self, injected_file):
+    @classmethod
+    def get_filename(cls, injected_file):
         file_name = hashlib.md5(injected_file).hexdigest()
         return file_name
 
@@ -57,17 +59,25 @@ class RFIEmulator(base_emulator.BaseEmulator):
         injectd_url = self.extract_url(urllib2.unquote(url))
         try:
             req = urllib2.Request(injectd_url)
-	    # Set User-Agent to look more credible 
-	    req.add_unredirected_header('User-Agent','-')
+            # Set User-Agent to look more credible
+            req.add_unredirected_header('User-Agent', '-')
             # FIXME: We need a timeout on read here
             injected_file = urllib2.urlopen(req, timeout=4).read()
+            #  If the file is hosted on a SSL enabled host get the certificate
+            if re.match('^https', injectd_url, re.IGNORECASE):
+                proto, rest = urllib2.splittype(injectd_url)
+                host, rest = urllib2.splithost(rest)
+                host, port = urllib2.splitport(host)
+                if port is None:
+                    port = 443
+
+                cert_file = ssl.get_server_certificate((host, int(port)))
+                cert_name = self.store_file(cert_file)
+
         except IOError as e:
             logger.exception("Failed to fetch injected file, I/O error: {0}".format(e))
             # TODO: We want to handle the case where we can't download
             # the injected file but pretend to be vulnerable.
-            file_name = None
-        except urllib2.URLError as e:
-            logger.exception("Failed to fetch injected file, URLError error: {0}".format(e))
             file_name = None
         else:
             file_name = self.store_file(injected_file)

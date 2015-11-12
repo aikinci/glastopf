@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Johnny Vestergaard
+# Copyright (C) 2015 Johnny Vestergaard
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -21,6 +21,7 @@ from glastopf.modules.handlers.emulators.dork_list import mnem_service
 
 
 class TestMnemosyneService(unittest.TestCase):
+    @unittest.skip("Mnemosyne service down until further notice")
     def test_extractions(self):
         """
         Basic test to check if we can extract dorks from the mnemosyne dorks service.
@@ -30,6 +31,7 @@ class TestMnemosyneService(unittest.TestCase):
         dorks = sut.get_dorks(username='glastopf_test', password='glastopf_test', limit=10)
         self.assertTrue(len(dorks) > 0)
 
+    @unittest.skip("Mnemosyne service down until further notice")
     def test_error_login(self):
         """
         Test if we fail soft on login errors.

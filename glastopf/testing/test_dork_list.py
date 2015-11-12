@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Lukas Rist
+# Copyright (C) 2015 Lukas Rist
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -22,6 +22,8 @@ import shutil
 import tempfile
 
 from lxml.html.soupparser import fromstring
+
+from glastopf.glastopf import GlastopfHoneypot
 from glastopf.modules.HTTP.handler import HTTPHandler
 from glastopf.testing import helpers
 from glastopf.modules.handlers.emulators.dork_list.dork_page_generator import DorkPageGenerator
@@ -29,9 +31,9 @@ from glastopf.modules.handlers.emulators.dork_list.dork_file_processor import Do
 from glastopf.modules.handlers.emulators.dork_list import database_mongo
 from glastopf.modules.handlers.emulators.dork_list import database_sqla
 from glastopf.modules.events import attack
-from glastopf.glastopf import GlastopfHoneypot
-from sqlalchemy import create_engine
 
+from sqlalchemy import create_engine
+from ConfigParser import ConfigParser
 
 class TestEmulatorDorkList(unittest.TestCase):
     """Tests the honeypots vulnerable string selection.
@@ -40,6 +42,9 @@ class TestEmulatorDorkList(unittest.TestCase):
     with data a needed."""
 
     def setUp(self):
+        self.config= ConfigParser()
+        self.config.add_section('main-database')
+        self.config.set('main-database', 'enabled', "True")
         self.workdir = tempfile.mkdtemp()
         self.datadir = os.path.join(self.workdir, 'data')
         GlastopfHoneypot.prepare_environment(self.workdir)
@@ -66,7 +71,7 @@ class TestEmulatorDorkList(unittest.TestCase):
             raise Exception("Unsupported database type: {0}".format(dbtype))
         reduced_dorks_file = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'data/dorks_reduced.txt')
         file_processor = DorkFileProcessor(db, dorks_file=reduced_dorks_file)
-        dork_generator = DorkPageGenerator(db, file_processor, self.datadir)
+        dork_generator = DorkPageGenerator(db, file_processor, self.datadir, conf_parser=self.config)
         return db, engine, dork_generator
 
     def test_db_select_sqlalchemy(self):

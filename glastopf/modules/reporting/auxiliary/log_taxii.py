@@ -1,4 +1,4 @@
-# Copyright (C) 2014  Johnny Vestergaard <jkv@unixcluster.dk>
+# Copyright (C) 2015 Johnny Vestergaard <jkv@unixcluster.dk>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -16,8 +16,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import logging
+import os
 
 import libtaxii
+import libtaxii.messages
 import libtaxii.clients as tc
 from libtaxii.messages_11 import ContentBlock, InboxMessage, generate_message_id
 from libtaxii.clients import HttpClient
@@ -30,7 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 class TaxiiLogger(BaseLogger):
-    def __init__(self, data_dir, config='glastopf.cfg'):
+    def __init__(self, data_dir, work_dir, config='glastopf.cfg'):
+        config = os.path.join(work_dir, config)
         BaseLogger.__init__(self, config)
         self.options = {'enabled': self.config.getboolean('taxii', 'enabled')}
         self.host = self.config.get('taxii', 'host')
